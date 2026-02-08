@@ -15,11 +15,11 @@ sdk = EZManagerSDK.from_env()
 print('Compounding fees...')
 result = sdk.compound_fees([POSITION_KEY])
 print(f"Fees compounded! Tx: {result['tx_hash']}")
+post_block = (result.get('receipt') or {}).get('blockNumber', 'latest')
 
 try:
     details = {
-        'position': sdk.get_position_readable(POSITION_KEY),
-        'position_details': sdk.get_position_details_readable(POSITION_KEY),
+        'position_details': sdk.get_position_details_readable(POSITION_KEY, block_identifier=post_block),
     }
     print('Details:')
     print(json.dumps(details, indent=2))

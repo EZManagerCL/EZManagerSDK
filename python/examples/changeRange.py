@@ -17,11 +17,11 @@ sdk = EZManagerSDK.from_env()
 print('Changing range...')
 result = sdk.change_range_by_pct(key=POSITION_KEY, lower_pct=LOWER_PCT, upper_pct=UPPER_PCT)
 print(f"Range changed! Tx: {result['tx_hash']}")
+post_block = (result.get('receipt') or {}).get('blockNumber', 'latest')
 
 try:
     details = {
-        'position': sdk.get_position_readable(POSITION_KEY),
-        'position_details': sdk.get_position_details_readable(POSITION_KEY),
+        'position_details': sdk.get_position_details_readable(POSITION_KEY, block_identifier=post_block),
     }
     print('Details:')
     print(json.dumps(details, indent=2))

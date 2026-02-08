@@ -14,7 +14,6 @@ POSITION_KEY = ''
 sdk = EZManagerSDK.from_env()
 print('Reading position...')
 details = {
-    'position': sdk.get_position_readable(POSITION_KEY),
     'position_details': sdk.get_position_details_readable(POSITION_KEY),
 }
 print('Details:')

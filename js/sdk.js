@@ -46,6 +46,23 @@ export class EZManagerSDK {
     this._eventInterfaces = Object.fromEntries(
       Object.entries(abi).map(([key, value]) => [key, new ethers.Interface(value)])
     );
+    this._gasBufferBps = this._readEnvInt('TX_GAS_BUFFER_BPS', 2000);
+    this._gasBufferMin = BigInt(this._readEnvInt('TX_GAS_BUFFER_MIN', 50000));
+  }
+
+  _readEnvInt(name, fallback) {
+    const raw = process.env[name];
+    if (raw == null || raw === '') return fallback;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(0, Math.floor(value));
+  }
+
+  _formatTxHash(value) {
+    if (value == null) return '';
+    const s = String(value).trim().toLowerCase();
+    if (!s) return '';
+    return s.startsWith('0x') ? s : `0x${s}`;
   }
 
   static async fromEnv({
@@ -88,7 +105,7 @@ export class EZManagerSDK {
 
   async sendManager(method, ...args) {
     if (typeof this.manager[method] !== 'function') throw new Error(`Unknown manager method: ${method}`);
-    return (await this._sendTx(() => this.manager[method](...args))).receipt;
+    return (await this._sendContractTx(this.manager, method, args)).receipt;
   }
 
   async callCore(method, ...args) {
@@ -98,7 +115,7 @@ export class EZManagerSDK {
 
   async sendCore(method, ...args) {
     if (typeof this.core[method] !== 'function') throw new Error(`Unknown core method: ${method}`);
-    return (await this._sendTx(() => this.core[method](...args))).receipt;
+    return (await this._sendContractTx(this.core, method, args)).receipt;
   }
 
   _extractRevertData(error) {
@@ -139,43 +156,207 @@ export class EZManagerSDK {
     return null;
   }
 
+  _extractNestedRevertData(data) {
+    if (!data || typeof data !== 'string' || !/^0x[0-9a-fA-F]{8,}$/.test(data)) return null;
+    try {
+      const payload = `0x${data.slice(10)}`;
+      const [inner] = ethers.AbiCoder.defaultAbiCoder().decode(['bytes'], payload);
+      if (typeof inner === 'string' && /^0x[0-9a-fA-F]{8,}$/.test(inner) && inner.toLowerCase() !== data.toLowerCase()) {
+        return inner;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   _augmentError(error) {
     const data = this._extractRevertData(error);
     const decoded = this.decodeCustomError(data);
-    if (!decoded) return error;
-    const details = Object.keys(decoded.args || {}).length ? ` args=${JSON.stringify(decoded.args)}` : '';
-    const msg = `Transaction reverted with custom error ${decoded.signature}${details}`;
+    let innerData = null;
+    let innerDecoded = null;
+    if (!decoded) {
+      innerData = this._extractNestedRevertData(data);
+      innerDecoded = this.decodeCustomError(innerData);
+    }
+    if (!decoded && !innerDecoded) {
+      if (!data) return error;
+      const unknown = new Error(`Transaction reverted with unknown custom error selector ${data.slice(0, 10)}`);
+      unknown.cause = error;
+      unknown.revertData = data;
+      return unknown;
+    }
+    const active = decoded || innerDecoded;
+    const details = Object.keys(active.args || {}).length ? ` args=${JSON.stringify(active.args)}` : '';
+    const msg = decoded
+      ? `Transaction reverted with custom error ${active.signature}${details}`
+      : `Transaction reverted with wrapped custom error selector ${data.slice(0, 10)} inner=${active.signature}${details}`;
     const wrapped = new Error(msg);
     wrapped.cause = error;
     wrapped.revertData = data;
-    wrapped.decodedCustomError = decoded;
+    if (innerData) wrapped.innerRevertData = innerData;
+    wrapped.decodedCustomError = active;
+    return wrapped;
+  }
+
+  _withGasBuffer(estimatedGas) {
+    const est = toBigInt(estimatedGas);
+    const buffered = est + ((est * BigInt(this._gasBufferBps)) / 10000n);
+    return buffered + this._gasBufferMin;
+  }
+
+  async _sendContractTx(contract, method, args = [], overrides = {}) {
+    const fn = contract?.getFunction?.(method);
+    if (!fn) throw new Error(`Unknown contract method: ${method}`);
+    const txReq = await fn.populateTransaction(...args, overrides);
+    if (txReq.to == null) txReq.to = contract.target;
+    if (txReq.from == null) txReq.from = this.signer.address;
+    const callerProvidedGas = overrides?.gasLimit != null || overrides?.gas != null;
+    if (!callerProvidedGas) {
+      try {
+        const estimateReq = { ...txReq };
+        delete estimateReq.gasLimit;
+        delete estimateReq.gas;
+        const estimated = await this.provider.estimateGas(estimateReq);
+        txReq.gasLimit = this._withGasBuffer(estimated);
+      } catch (error) {
+        throw this._augmentError(error);
+      }
+    }
+    return this._sendTx(() => this.signer.sendTransaction(txReq));
+  }
+
+  _flattenTraceFailures(node, path = 'root', out = []) {
+    if (!node || typeof node !== 'object') return out;
+    if (node.error) {
+      out.push({
+        path,
+        error: String(node.error),
+        output: typeof node.output === 'string' ? node.output : null,
+        to: node.to ?? null,
+        from: node.from ?? null,
+        type: node.type ?? null
+      });
+    }
+    if (Array.isArray(node.calls)) {
+      for (let i = 0; i < node.calls.length; i++) {
+        this._flattenTraceFailures(node.calls[i], `${path}.calls[${i}]`, out);
+      }
+    }
+    return out;
+  }
+
+  _pathsRelated(a, b) {
+    if (!a || !b) return false;
+    return a === b || a.startsWith(`${b}.`) || b.startsWith(`${a}.`);
+  }
+
+  async _traceFailureSummary(txHash) {
+    if (!txHash) return null;
+    try {
+      const trace = await this.provider.send('debug_traceTransaction', [txHash, { tracer: 'callTracer' }]);
+      const failures = this._flattenTraceFailures(trace);
+      const outOfGasFailures = failures.filter((f) => /out of gas/i.test(f.error || ''));
+      const outOfGas = outOfGasFailures.length > 0;
+      const terminalFailure = failures.length ? failures[failures.length - 1] : null;
+      const withOutput = [...failures].reverse().find((f) => {
+        if (!(typeof f.output === 'string' && /^0x[0-9a-fA-F]{8,}$/.test(f.output))) return false;
+        if (!terminalFailure) return true;
+        return this._pathsRelated(f.path, terminalFailure.path);
+      }) || [...failures].reverse().find((f) => typeof f.output === 'string' && /^0x[0-9a-fA-F]{8,}$/.test(f.output));
+      const decoded = withOutput ? this.decodeCustomError(withOutput.output) : null;
+      return { failures, outOfGas, withOutput, decoded, terminalFailure };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _statusZeroErrorMessage({ txHash, reason, gasUsed, gasLimit, outOfGas }) {
+    const parts = [`Transaction failed on-chain (status=0). txHash=${this._formatTxHash(txHash)}`];
+    if (reason) parts.push(`reason=${reason}`);
+    if (outOfGas) parts.push('rootCause=out-of-gas');
+    if (gasUsed != null || gasLimit != null) parts.push(`gasUsed=${gasUsed ?? 'unknown'} gasLimit=${gasLimit ?? 'unknown'}`);
+    return parts.join(' ');
+  }
+
+  async _buildStatusZeroError({ txHash, tx = null, receipt = null, originalError = null }) {
+    txHash = this._formatTxHash(txHash);
+    const onchainTx = tx || (txHash ? await this.provider.getTransaction(txHash).catch(() => null) : null);
+    const onchainReceipt = receipt || (txHash ? await this.provider.getTransactionReceipt(txHash).catch(() => null) : null);
+    let reason = null;
+    let reasonCause = null;
+
+    if (onchainTx) {
+      const callTx = {
+        from: onchainTx.from ?? onchainTx.fromAddress ?? this.signer.address,
+        to: onchainTx.to ?? null,
+        data: onchainTx.data ?? '0x',
+        value: onchainTx.value ?? 0n
+      };
+      try {
+        await this.provider.call(callTx, onchainReceipt?.blockNumber ?? 'latest');
+      } catch (simError) {
+        const augmented = this._augmentError(simError);
+        reason = augmented.message || String(augmented);
+        reasonCause = augmented;
+      }
+    }
+
+    const traceSummary = await this._traceFailureSummary(txHash);
+    const outOfGas = Boolean(traceSummary?.outOfGas);
+    const terminalFailure = traceSummary?.terminalFailure || null;
+    const decodedRelatedToTerminal = traceSummary?.withOutput && terminalFailure
+      ? this._pathsRelated(traceSummary.withOutput.path, terminalFailure.path)
+      : false;
+    if (!reason && traceSummary?.decoded?.signature && (!outOfGas || decodedRelatedToTerminal)) {
+      const args = traceSummary.decoded.args || {};
+      const details = Object.keys(args).length ? ` args=${JSON.stringify(args)}` : '';
+      reason = `${traceSummary.decoded.signature}${details}`;
+    } else if (!reason && traceSummary?.withOutput && (!outOfGas || decodedRelatedToTerminal)) {
+      reason = `revertData=${traceSummary.withOutput.output}`;
+    } else if (!reason && originalError) {
+      reason = originalError?.shortMessage || originalError?.message || String(originalError);
+    }
+    if (outOfGas && (!reason || !/out of gas/i.test(reason))) {
+      reason = reason ? `${reason}; execution trace reports out of gas` : 'execution trace reports out of gas';
+    }
+
+    const gasUsed = onchainReceipt?.gasUsed != null ? String(onchainReceipt.gasUsed) : null;
+    const gasLimitValue = onchainTx?.gasLimit ?? tx?.gasLimit ?? null;
+    const gasLimit = gasLimitValue != null ? String(gasLimitValue) : null;
+    const wrapped = new Error(
+      this._statusZeroErrorMessage({
+        txHash,
+        reason,
+        gasUsed,
+        gasLimit,
+        outOfGas
+      })
+    );
+    wrapped.cause = reasonCause || originalError || null;
+    wrapped.txHash = this._formatTxHash(txHash);
+    wrapped.receipt = onchainReceipt || null;
+    wrapped.outOfGas = outOfGas;
+    wrapped.traceFailures = traceSummary?.failures || null;
+    wrapped.reason = reason;
     return wrapped;
   }
 
   async _sendTx(makeTx) {
+    let tx = null;
     try {
-      const tx = await makeTx();
+      tx = await makeTx();
       const receipt = await tx.wait();
       if (Number(receipt?.status ?? 0) !== 1) {
-        const callTx = {
-          from: tx.from,
-          to: tx.to,
-          data: tx.data,
-          value: tx.value ?? 0n
-        };
-        try {
-          await this.provider.call(callTx, receipt?.blockNumber ?? 'latest');
-        } catch (simError) {
-          const augmented = this._augmentError(simError);
-          const wrapped = new Error(`Transaction failed on-chain (status=0). txHash=${tx.hash} reason=${augmented.message}`);
-          wrapped.cause = augmented;
-          wrapped.txHash = tx.hash;
-          throw wrapped;
-        }
-        throw new Error(`Transaction failed on-chain (status=0). txHash=${tx.hash}`);
+        throw await this._buildStatusZeroError({ txHash: tx.hash, tx, receipt });
       }
       return { tx, receipt };
     } catch (error) {
+      const txHash = this._formatTxHash(tx?.hash || error?.transactionHash || error?.receipt?.hash || error?.receipt?.transactionHash);
+      if (txHash) {
+        const receipt = error?.receipt || (await this.provider.getTransactionReceipt(txHash).catch(() => null));
+        if (Number(receipt?.status ?? 1) === 0) {
+          throw await this._buildStatusZeroError({ txHash, tx, receipt, originalError: error });
+        }
+      }
       throw this._augmentError(error);
     }
   }
@@ -266,19 +447,11 @@ export class EZManagerSDK {
     const allowance = await this.usdc.allowance(this.signer.address, spenderAddr);
     if (allowance >= required) return null;
     const max = (2n ** 256n) - 1n;
-    const waitChecked = async (txPromise) => {
-      const tx = await txPromise;
-      const receipt = await tx.wait();
-      if (Number(receipt?.status ?? 0) !== 1) {
-        throw new Error(`USDC approve failed (status=0). txHash=${tx.hash}`);
-      }
-      return receipt;
-    };
     try {
-      await waitChecked(this.usdc.approve(spenderAddr, max));
+      await this._sendContractTx(this.usdc, 'approve', [spenderAddr, max]);
     } catch (_) {
-      await waitChecked(this.usdc.approve(spenderAddr, 0n));
-      await waitChecked(this.usdc.approve(spenderAddr, max));
+      await this._sendContractTx(this.usdc, 'approve', [spenderAddr, 0n]);
+      await this._sendContractTx(this.usdc, 'approve', [spenderAddr, max]);
     }
     const finalAllowance = await this.usdc.allowance(this.signer.address, spenderAddr);
     if (finalAllowance < required) {
@@ -313,8 +486,12 @@ export class EZManagerSDK {
     const amountRaw = parseUnits(String(usdcAmount), await this.usdcDecimals());
     await this.ensureUsdcAllowance(this.addresses.CLManager, amountRaw);
 
-    const { tx, receipt } = await this._sendTx(() => this.manager.openPosition(poolAddress, Number(tickLower), Number(tickUpper), amountRaw, Number(slippageBps)));
-    return { txHash: tx.hash, receipt, positionKey: this.extractOpenedKeyFromReceipt(receipt) };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'openPosition',
+      [poolAddress, Number(tickLower), Number(tickUpper), amountRaw, Number(slippageBps)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt, positionKey: this.extractOpenedKeyFromReceipt(receipt) };
   }
 
   async openPositionByPct({ poolAddress, usdcAmount, lowerPct, upperPct, rangePct, slippage = 0.005 }) {
@@ -369,22 +546,34 @@ export class EZManagerSDK {
     const amountRaw = parseUnits(String(usdcAmount), await this.usdcDecimals());
     const normalizedKey = normalizeBytes32(key);
     await this.ensureUsdcAllowance(this.addresses.CLManager, amountRaw);
-    const { tx, receipt } = await this._sendTx(() => this.manager.addCollateral(normalizedKey, amountRaw, toSlippageBps(slippage)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'addCollateral',
+      [normalizedKey, amountRaw, toSlippageBps(slippage)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async removeCollateral({ key, usdcAmount, slippage = 0.005 }) {
     const amountRaw = parseUnits(String(usdcAmount), await this.usdcDecimals());
     const normalizedKey = normalizeBytes32(key);
-    const { tx, receipt } = await this._sendTx(() => this.manager.removeCollateral(normalizedKey, amountRaw, toSlippageBps(slippage)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'removeCollateral',
+      [normalizedKey, amountRaw, toSlippageBps(slippage)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async changeRange({ key, tickLower, tickUpper, slippage = 0.005 }) {
     const normalizedKey = normalizeBytes32(key);
     if (tickLower == null || tickUpper == null) throw new Error('changeRange: tickLower and tickUpper required');
-    const { tx, receipt } = await this._sendTx(() => this.manager.changeRange(normalizedKey, Number(tickLower), Number(tickUpper), toSlippageBps(slippage)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'changeRange',
+      [normalizedKey, Number(tickLower), Number(tickUpper), toSlippageBps(slippage)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async changeRangeByPct({ key, lowerPct, upperPct, slippage = 0.005 }) {
@@ -435,36 +624,52 @@ export class EZManagerSDK {
 
   async collectFeesToUSDC({ keys, slippage = 0.005 }) {
     const keyList = (Array.isArray(keys) ? keys : [keys]).map((k) => normalizeBytes32(k));
-    const { tx, receipt } = await this._sendTx(() => this.manager.collectFeesToUSDC(keyList, toSlippageBps(slippage)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'collectFeesToUSDC',
+      [keyList, toSlippageBps(slippage)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async compoundFees({ keys, slippage = 0.005 }) {
     const keyList = (Array.isArray(keys) ? keys : [keys]).map((k) => normalizeBytes32(k));
-    const { tx, receipt } = await this._sendTx(() => this.manager.compoundFees(keyList, toSlippageBps(slippage)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'compoundFees',
+      [keyList, toSlippageBps(slippage)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async exitPosition({ keys, slippage = 0.005 }) {
     const keyList = (Array.isArray(keys) ? keys : [keys]).map((k) => normalizeBytes32(k));
-    const { tx, receipt } = await this._sendTx(() => this.manager.exitPosition(keyList, toSlippageBps(slippage)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'exitPosition',
+      [keyList, toSlippageBps(slippage)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async allowBotForPosition({ key, allowed = true }) {
-    const { tx, receipt } = await this._sendTx(() => this.manager.allowBotForPosition(normalizeBytes32(key), Boolean(allowed)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(
+      this.manager,
+      'allowBotForPosition',
+      [normalizeBytes32(key), Boolean(allowed)]
+    );
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async withdrawDust({ key }) {
-    const { tx, receipt } = await this._sendTx(() => this.manager.withdrawDust(normalizeBytes32(key)));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(this.manager, 'withdrawDust', [normalizeBytes32(key)]);
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async returnNft({ keys }) {
     const keyList = (Array.isArray(keys) ? keys : [keys]).map((k) => normalizeBytes32(k));
-    const { tx, receipt } = await this._sendTx(() => this.manager.returnNft(keyList));
-    return { txHash: tx.hash, receipt };
+    const { tx, receipt } = await this._sendContractTx(this.manager, 'returnNft', [keyList]);
+    return { txHash: this._formatTxHash(tx.hash), receipt };
   }
 
   async getUserPositionKeys(user = this.signer.address, { blockTag = 'latest' } = {}) {

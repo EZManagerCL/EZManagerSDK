@@ -16,11 +16,11 @@ sdk = EZManagerSDK.from_env()
 print('Adding collateral...')
 result = sdk.add_collateral(key=POSITION_KEY, usdc_amount=COLLATERAL_USDC)
 print(f"Collateral added! Tx: {result['tx_hash']}")
+post_block = (result.get('receipt') or {}).get('blockNumber', 'latest')
 
 try:
     details = {
-        'position': sdk.get_position_readable(POSITION_KEY),
-        'position_details': sdk.get_position_details_readable(POSITION_KEY),
+        'position_details': sdk.get_position_details_readable(POSITION_KEY, block_identifier=post_block),
     }
     print('Details:')
     print(json.dumps(details, indent=2))

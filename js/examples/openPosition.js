@@ -23,15 +23,15 @@ if (result.positionKey) console.log(`Key: ${result.positionKey}`);
 
 const keyToRead = result.positionKey;
 if (!keyToRead) throw new Error('openPositionByPct returned no positionKey; aborting detail lookup.');
+const postBlockTag = result?.receipt?.blockNumber ?? 'latest';
 
 try {
   const positionDetails = await sdk.waitForPosition(keyToRead, {
-    blockTag: 'latest',
+    blockTag: postBlockTag,
     attempts: 8,
     delayMs: 900
   });
   const details = {
-    position: await sdk.getPositionReadable(keyToRead, { blockTag: 'latest' }),
     positionDetails
   };
   console.log('Details:');

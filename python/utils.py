@@ -43,33 +43,21 @@ def load_abi_map(abi_dir: Path | None = None) -> Dict[str, list]:
 
 
 def normalize_bytes32(value: Any) -> str:
-    if isinstance(value, int):
-        if value < 0:
-            raise ValueError(f'invalid negative bytes32 key: {value}')
-        hx = hex(value)[2:]
-        if len(hx) > 64:
-            raise ValueError(f'invalid bytes32 int too large: {value}')
-        return '0x' + hx.rjust(64, '0')
-
     if isinstance(value, (bytes, bytearray)):
         raw = bytes(value)
-        if len(raw) > 32:
+        if len(raw) != 32:
             raise ValueError(f'invalid bytes32 bytes length: {len(raw)}')
-        return '0x' + raw.hex().rjust(64, '0')
+        return '0x' + raw.hex()
 
     if isinstance(value, str):
         s = value.strip().lower()
         if s.startswith('0x'):
             s = s[2:]
-        if not s:
-            raise ValueError(f'invalid empty bytes32 key: {value}')
-        if any(ch not in '0123456789abcdef' for ch in s):
-            raise ValueError(f'invalid non-hex bytes32 key: {value}')
-        if len(s) > 64:
-            raise ValueError(f'invalid bytes32 hex too long: {value}')
-        return '0x' + s.rjust(64, '0')
+        if len(s) == 64 and all(ch in '0123456789abcdef' for ch in s):
+            return '0x' + s
+        raise ValueError(f'invalid bytes32 key: {value}')
 
-    raise ValueError(f'invalid bytes32 key type: {type(value).__name__}')
+    raise ValueError('bytes32 key must be a hex string or 32-byte value')
 
 
 def sort_tokens(a: str, b: str) -> Tuple[str, str]:
@@ -111,9 +99,14 @@ def price_to_tick(price: float, dec0: int = 18, dec1: int = 6) -> int:
 
 
 def to_slippage_bps(slippage: float) -> int:
-    if slippage > 1:
-        return int(round(slippage))
-    return int(round(slippage * 10_000))
+    n = float(slippage)
+    if not math.isfinite(n):
+        raise ValueError(f'invalid slippage: {slippage}')
+    if n > 1:
+        return int(round(n))
+    if n <= 0:
+        raise ValueError('slippage must be > 0')
+    return int(round(n * 10_000))
 
 
 def format_units(value: int, decimals: int = 18) -> str:

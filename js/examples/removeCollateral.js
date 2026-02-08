@@ -12,11 +12,11 @@ const sdk = await EZManagerSDK.fromEnv();
 console.log('Removing collateral...');
 const result = await sdk.removeCollateral({ key: POSITION_KEY, usdcAmount: COLLATERAL_USDC });
 console.log(`Collateral removed! Tx: ${result.txHash}`);
+const postBlockTag = result?.receipt?.blockNumber ?? 'latest';
 
 try {
   const details = {
-    position: await sdk.getPositionReadable(POSITION_KEY),
-    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY)
+    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY, { blockTag: postBlockTag })
   };
   console.log('Details:');
   printJson(details);

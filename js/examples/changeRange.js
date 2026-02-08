@@ -13,11 +13,11 @@ const sdk = await EZManagerSDK.fromEnv();
 console.log('Changing range...');
 const result = await sdk.changeRangeByPct({ key: POSITION_KEY, lowerPct: LOWER_PCT, upperPct: UPPER_PCT });
 console.log(`Range changed! Tx: ${result.txHash}`);
+const postBlockTag = result?.receipt?.blockNumber ?? 'latest';
 
 try {
   const details = {
-    position: await sdk.getPositionReadable(POSITION_KEY),
-    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY)
+    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY, { blockTag: postBlockTag })
   };
   console.log('Details:');
   printJson(details);

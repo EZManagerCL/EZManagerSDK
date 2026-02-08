@@ -11,11 +11,11 @@ const sdk = await EZManagerSDK.fromEnv();
 console.log('Compounding fees...');
 const result = await sdk.compoundFees({ keys: [POSITION_KEY] });
 console.log(`Fees compounded! Tx: ${result.txHash}`);
+const postBlockTag = result?.receipt?.blockNumber ?? 'latest';
 
 try {
   const details = {
-    position: await sdk.getPositionReadable(POSITION_KEY),
-    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY)
+    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY, { blockTag: postBlockTag })
   };
   console.log('Details:');
   printJson(details);

@@ -29,16 +29,16 @@ if result.get('position_key'):
 key_to_read = result.get('position_key')
 if not key_to_read:
     raise RuntimeError('open_position returned no position_key; aborting detail lookup.')
+post_block = (result.get('receipt') or {}).get('blockNumber', 'latest')
 
 try:
     position_details = sdk.wait_for_position(
         key_to_read,
-        block_identifier='latest',
+        block_identifier=post_block,
         attempts=8,
         delay_seconds=0.9,
     )
     details = {
-        'position': sdk.get_position_readable(key_to_read, block_identifier='latest'),
         'position_details': position_details,
     }
     print('Details:')

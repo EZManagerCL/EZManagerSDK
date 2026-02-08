@@ -1,6 +1,7 @@
 import math
 import os
 import time
+from decimal import Decimal, InvalidOperation, ROUND_DOWN
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -57,6 +58,17 @@ class EZManagerSDK:
         self.valuation = valuation
         self.error_selector_map = self._build_error_selector_map()
         self._event_maps = self._build_event_maps()
+        self.gas_buffer_bps = self._read_env_int('TX_GAS_BUFFER_BPS', 2000)
+        self.gas_buffer_min = self._read_env_int('TX_GAS_BUFFER_MIN', 50000)
+
+    def _read_env_int(self, name: str, fallback: int) -> int:
+        raw = os.getenv(name)
+        if raw is None or str(raw).strip() == '':
+            return int(fallback)
+        try:
+            return max(0, int(raw))
+        except Exception:
+            return int(fallback)
 
     def _build_error_selector_map(self) -> Dict[str, Dict[str, Any]]:
         mapping: Dict[str, Dict[str, Any]] = {}
@@ -86,6 +98,12 @@ class EZManagerSDK:
             s = str(value.hex()).lower()
             return s[2:] if s.startswith('0x') else s
         return str(value).strip().lower().replace('0x', '')
+
+    def _format_tx_hash(self, value: Any) -> str:
+        norm = self._norm_hex(value)
+        if not norm:
+            return ''
+        return '0x' + norm
 
     def _event_topic0(self, event_abi: Dict[str, Any]) -> str:
         inputs = event_abi.get('inputs') or []
@@ -186,6 +204,14 @@ class EZManagerSDK:
                 return {'selector': selector, 'signature': 'Panic(uint256)', 'args': None}
         info = self.error_selector_map.get(selector)
         if not info:
+            nested = self._extract_nested_revert_data(revert_data)
+            if nested:
+                nested_decoded = self.decode_custom_error(nested)
+                if nested_decoded:
+                    out = dict(nested_decoded)
+                    out['wrapped_by_selector'] = selector
+                    out['wrapped_revert_data'] = nested
+                    return out
             return {'selector': selector, 'signature': None, 'args': None}
 
         decoded_args = None
@@ -198,6 +224,23 @@ class EZManagerSDK:
             except Exception:
                 decoded_args = None
         return {'selector': selector, 'signature': info['signature'], 'args': decoded_args}
+
+    def _extract_nested_revert_data(self, revert_data: Optional[str]) -> Optional[str]:
+        if not revert_data or not isinstance(revert_data, str) or not revert_data.startswith('0x') or len(revert_data) < 10:
+            return None
+        try:
+            from eth_abi import decode
+            payload_hex = revert_data[10:]
+            if not payload_hex:
+                return None
+            inner = decode(['bytes'], bytes.fromhex(payload_hex))[0]
+            if isinstance(inner, (bytes, bytearray)) and len(inner) >= 4:
+                inner_hex = '0x' + bytes(inner).hex()
+                if inner_hex.lower() != revert_data.lower():
+                    return inner_hex
+        except Exception:
+            return None
+        return None
 
     def decode_receipt_events(
         self,
@@ -259,7 +302,13 @@ class EZManagerSDK:
             raise err
 
         if decoded.get('signature'):
-            msg = f"Transaction reverted with custom error {decoded['signature']}"
+            if decoded.get('wrapped_by_selector'):
+                msg = (
+                    f"Transaction reverted with wrapped custom error selector {decoded['wrapped_by_selector']} "
+                    f"inner={decoded['signature']}"
+                )
+            else:
+                msg = f"Transaction reverted with custom error {decoded['signature']}"
         else:
             msg = f"Transaction reverted with unknown custom error selector {decoded.get('selector')}"
         if decoded.get('args') is not None:
@@ -267,6 +316,144 @@ class EZManagerSDK:
         if revert_data:
             msg += f" revertData={revert_data}"
         raise RuntimeError(msg) from err
+
+    def _with_gas_buffer(self, estimate: int) -> int:
+        est = max(0, int(estimate))
+        buffered = est + ((est * int(self.gas_buffer_bps)) // 10000)
+        return buffered + int(self.gas_buffer_min)
+
+    def _collect_trace_failures(self, node: Any, path: str = 'root', out: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+        if out is None:
+            out = []
+        if not isinstance(node, dict):
+            return out
+        if node.get('error'):
+            output = node.get('output')
+            out.append(
+                {
+                    'path': path,
+                    'error': str(node.get('error')),
+                    'output': output if isinstance(output, str) else None,
+                    'to': node.get('to'),
+                    'from': node.get('from'),
+                    'type': node.get('type'),
+                }
+            )
+        calls = node.get('calls') or []
+        if isinstance(calls, list):
+            for idx, child in enumerate(calls):
+                self._collect_trace_failures(child, path=f'{path}.calls[{idx}]', out=out)
+        return out
+
+    def _paths_related(self, a: Optional[str], b: Optional[str]) -> bool:
+        if not a or not b:
+            return False
+        return a == b or a.startswith(f'{b}.') or b.startswith(f'{a}.')
+
+    def _trace_failure_summary(self, tx_hash_hex: str) -> Optional[Dict[str, Any]]:
+        try:
+            response = self.web3.provider.make_request(
+                'debug_traceTransaction',
+                [tx_hash_hex, {'tracer': 'callTracer'}],
+            )
+            trace = response.get('result') if isinstance(response, dict) else None
+            if not isinstance(trace, dict):
+                return None
+            failures = self._collect_trace_failures(trace)
+            out_of_gas = any('out of gas' in str(f.get('error', '')).lower() for f in failures)
+            terminal_failure = failures[-1] if failures else None
+            reverse = list(reversed(failures))
+            with_output = next(
+                (
+                    f for f in reverse
+                    if isinstance(f.get('output'), str)
+                    and f['output'].startswith('0x')
+                    and len(f['output']) >= 10
+                    and (terminal_failure is None or self._paths_related(f.get('path'), terminal_failure.get('path')))
+                ),
+                None,
+            )
+            if with_output is None:
+                with_output = next(
+                    (
+                        f for f in reverse
+                        if isinstance(f.get('output'), str) and f['output'].startswith('0x') and len(f['output']) >= 10
+                    ),
+                    None,
+                )
+            decoded = self.decode_custom_error(with_output['output']) if with_output else None
+            return {
+                'failures': failures,
+                'out_of_gas': out_of_gas,
+                'with_output': with_output,
+                'decoded': decoded,
+                'terminal_failure': terminal_failure,
+            }
+        except Exception:
+            return None
+
+    def _build_status_zero_error(
+        self,
+        tx_hash_hex: str,
+        tx: Optional[Dict[str, Any]],
+        receipt,
+        prior_reason: Optional[str] = None,
+    ) -> RuntimeError:
+        tx_hash_hex = self._format_tx_hash(tx_hash_hex)
+        reason = prior_reason
+        trace_summary = self._trace_failure_summary(tx_hash_hex)
+        out_of_gas = bool(trace_summary and trace_summary.get('out_of_gas'))
+        terminal_failure = trace_summary.get('terminal_failure') if trace_summary else None
+        with_output = trace_summary.get('with_output') if trace_summary else None
+        decoded_related_to_terminal = bool(
+            with_output and terminal_failure and self._paths_related(with_output.get('path'), terminal_failure.get('path'))
+        )
+
+        if not reason and trace_summary:
+            decoded = trace_summary.get('decoded')
+            if decoded and decoded.get('signature') and (not out_of_gas or decoded_related_to_terminal):
+                reason = decoded['signature']
+                if decoded.get('args') is not None:
+                    reason += f" args={decoded['args']}"
+            elif with_output and (not out_of_gas or decoded_related_to_terminal):
+                reason = f"revertData={with_output['output']}"
+
+        gas_used = None
+        gas_limit = None
+        try:
+            gas_used = int(receipt.get('gasUsed')) if receipt and receipt.get('gasUsed') is not None else None
+        except Exception:
+            gas_used = None
+        try:
+            tx_onchain = self.web3.eth.get_transaction(tx_hash_hex)
+        except Exception:
+            tx_onchain = None
+        if tx_onchain is not None:
+            try:
+                gas_limit = int(tx_onchain.get('gas'))
+            except Exception:
+                gas_limit = None
+        if gas_limit is None and tx is not None:
+            try:
+                gas_limit = int(tx.get('gas')) if tx.get('gas') is not None else None
+            except Exception:
+                gas_limit = None
+
+        if out_of_gas and (not reason or 'out of gas' not in reason.lower()):
+            reason = f'{reason}; execution trace reports out of gas' if reason else 'execution trace reports out of gas'
+
+        parts = [f'Transaction failed on-chain (status=0). tx_hash={tx_hash_hex}']
+        if reason:
+            parts.append(f'reason={reason}')
+        if out_of_gas:
+            parts.append('rootCause=out-of-gas')
+        if gas_used is not None or gas_limit is not None:
+            parts.append(f'gasUsed={gas_used if gas_used is not None else "unknown"} gasLimit={gas_limit if gas_limit is not None else "unknown"}')
+        err = RuntimeError(' '.join(parts))
+        setattr(err, 'tx_hash', tx_hash_hex)
+        setattr(err, 'out_of_gas', out_of_gas)
+        setattr(err, 'trace_failures', trace_summary.get('failures') if trace_summary else None)
+        return err
 
     @classmethod
     def from_env(
@@ -307,7 +494,7 @@ class EZManagerSDK:
     def address(self) -> str:
         return self.account.address
 
-    def _build_tx(self, fn, value: int = 0) -> Dict[str, Any]:
+    def _build_tx(self, fn, value: int = 0, gas: Optional[int] = None) -> Dict[str, Any]:
         nonce = self.web3.eth.get_transaction_count(self.address, 'pending')
         tx = fn.build_transaction(
             {
@@ -317,17 +504,23 @@ class EZManagerSDK:
                 'chainId': self.web3.eth.chain_id,
             }
         )
-        if 'gas' not in tx:
-            tx['gas'] = self.web3.eth.estimate_gas(tx)
+        if gas is not None:
+            tx['gas'] = int(gas)
+        else:
+            # build_transaction may auto-fill gas; ignore that and re-estimate so buffer is always applied.
+            estimate_tx = dict(tx)
+            estimate_tx.pop('gas', None)
+            tx['gas'] = self._with_gas_buffer(self.web3.eth.estimate_gas(estimate_tx))
         if 'maxFeePerGas' not in tx and 'gasPrice' not in tx:
             tx['gasPrice'] = self.web3.eth.gas_price
         return tx
 
-    def _send_fn(self, fn, value: int = 0):
+    def _send_fn(self, fn, value: int = 0, gas: Optional[int] = None):
         try:
-            tx = self._build_tx(fn, value=value)
+            tx = self._build_tx(fn, value=value, gas=gas)
             signed = self.web3.eth.account.sign_transaction(tx, self.account.key)
             tx_hash = self.web3.eth.send_raw_transaction(signed.raw_transaction)
+            tx_hash_hex = self._format_tx_hash(tx_hash)
             receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
             status = int(receipt.get('status', 0))
             if status != 1:
@@ -351,13 +544,13 @@ class EZManagerSDK:
                         revert_msg = f"revertData={revert_data}"
                     else:
                         revert_msg = str(call_err)
-
-                if revert_msg:
-                    raise RuntimeError(
-                        f"Transaction failed on-chain (status=0). tx_hash={tx_hash.hex()} reason={revert_msg}"
-                    )
-                raise RuntimeError(f"Transaction failed on-chain (status=0). tx_hash={tx_hash.hex()}")
-            return {'tx_hash': tx_hash.hex(), 'receipt': receipt}
+                raise self._build_status_zero_error(
+                    tx_hash_hex=tx_hash_hex,
+                    tx=tx,
+                    receipt=receipt,
+                    prior_reason=revert_msg,
+                )
+            return {'tx_hash': tx_hash_hex, 'receipt': receipt}
         except Exception as err:
             if isinstance(err, RuntimeError):
                 raise err
@@ -430,7 +623,17 @@ class EZManagerSDK:
 
     def parse_usdc(self, value: str | float | int) -> int:
         decimals = self.usdc_decimals()
-        return int(float(value) * (10 ** decimals))
+        try:
+            parsed = Decimal(str(value))
+        except (InvalidOperation, ValueError) as exc:
+            raise ValueError(f'invalid usdc amount: {value}') from exc
+        if parsed < 0:
+            raise ValueError('usdc amount must be non-negative')
+        fractional_digits = max(0, -parsed.as_tuple().exponent)
+        if fractional_digits > decimals:
+            raise ValueError(f'usdc amount has too many decimal places (max {decimals}): {value}')
+        scale = Decimal(10) ** decimals
+        return int((parsed * scale).to_integral_value(rounding=ROUND_DOWN))
 
     def ensure_usdc_allowance(self, spender: str, min_amount: int):
         spender_addr = Web3.to_checksum_address(spender)
@@ -701,8 +904,8 @@ class EZManagerSDK:
         self,
         key: str,
         block_identifier: Any = 'latest',
-        attempts: int = 5,
-        delay_seconds: float = 0.7,
+        attempts: int = 6,
+        delay_seconds: float = 0.8,
     ) -> Dict[str, Any]:
         last_err: Optional[Exception] = None
         for _ in range(max(1, attempts)):
@@ -717,3 +920,9 @@ class EZManagerSDK:
 
     def wallet_usdc_balance(self) -> int:
         return int(self.usdc.functions.balanceOf(self.address).call())
+
+    def valuation_usdc(self, dex: str, token: str, amount_raw: int) -> int:
+        if self.valuation is None:
+            raise RuntimeError('Valuation contract not configured')
+        dex_addr = self.resolve_dex_adapter(dex)
+        return int(self.valuation.functions.usdcValue(dex_addr, Web3.to_checksum_address(token), int(amount_raw)).call())

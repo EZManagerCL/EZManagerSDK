@@ -9,6 +9,10 @@
 - `RPC_URL`
 - `PRIVATE_KEY`
 
+## Optional Environment
+- `TX_GAS_BUFFER_BPS` (default `2000` = +20%)
+- `TX_GAS_BUFFER_MIN` (default `50000` gas)
+
 ## Core Methods
 - `open_position`
 - `add_collateral`
@@ -32,7 +36,7 @@ Each example defines its own input constants at the top of the file.
 ## Debug
 - Decode custom error data:
   - `python debug/decode_custom_error.py 0xa86b6512`
-- SDK write calls automatically attempt custom error decoding on reverts.
+- SDK write calls attempt custom error decoding on reverts and include extra diagnostics for status=0 failures (including out-of-gas trace hints when available).
 
 ## Allowlisted Pools
 See `ALLOWED_POOLS.md`.

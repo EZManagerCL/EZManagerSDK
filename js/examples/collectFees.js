@@ -11,11 +11,11 @@ const sdk = await EZManagerSDK.fromEnv();
 console.log('Collecting fees...');
 const result = await sdk.collectFeesToUSDC({ keys: [POSITION_KEY] });
 console.log(`Fees collected! Tx: ${result.txHash}`);
+const postBlockTag = result?.receipt?.blockNumber ?? 'latest';
 
 try {
   const details = {
-    position: await sdk.getPositionReadable(POSITION_KEY),
-    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY)
+    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY, { blockTag: postBlockTag })
   };
   console.log('Details:');
   printJson(details);

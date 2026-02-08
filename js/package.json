@@ -1,0 +1,16 @@
+{
+  "name": "ezmanager-sdk-js",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./abi": "./abi/index.js",
+    "./utils": "./utils.js",
+    "./sdk": "./sdk.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5"
+  }
+}

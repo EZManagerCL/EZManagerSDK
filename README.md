@@ -18,19 +18,19 @@ Each language folder is self-contained with:
 Clone the repository:
 
 ```bash
-git clone https://github.com/EZManagerTGC/EZManagerSDK.git
+git clone https://github.com/EZManager-org/EZManagerSDK.git
 cd EZManagerSDK
 ```
 
 ### JavaScript
 ```bash
-git clone https://github.com/EZManagerTGC/EZManagerSDK.git
+git clone https://github.com/EZManager-org/EZManagerSDK.git
 cd EZManagerSDK/js
 ```
 
 ```bash
 # alternative: sparse checkout only js/
-git clone --filter=blob:none --sparse https://github.com/EZManagerTGC/EZManagerSDK.git
+git clone --filter=blob:none --sparse https://github.com/EZManager-org/EZManagerSDK.git
 cd EZManagerSDK
 git sparse-checkout set js
 cd js
@@ -45,13 +45,13 @@ node examples/openPosition.js
 
 ### Python
 ```bash
-git clone https://github.com/EZManagerTGC/EZManagerSDK.git
+git clone https://github.com/EZManager-org/EZManagerSDK.git
 cd EZManagerSDK/python
 ```
 
 ```bash
 # alternative: sparse checkout only python/
-git clone --filter=blob:none --sparse https://github.com/EZManagerTGC/EZManagerSDK.git
+git clone --filter=blob:none --sparse https://github.com/EZManager-org/EZManagerSDK.git
 cd EZManagerSDK
 git sparse-checkout set python
 cd python

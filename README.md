@@ -66,13 +66,15 @@ python examples/openPosition.py
 
 ## Core Example Flows (both languages)
 - Open position
+- Read position
 - Add collateral
 - Remove collateral
 - Change range
 - Compound fees
 - Collect fees
 - Exit position
-- Read position
+- End-to-end lifecycle
+- List user positions
 
 ## Allowlisted Pools
 Each language folder includes `ALLOWED_POOLS.md`.

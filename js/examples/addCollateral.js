@@ -1,26 +1,41 @@
 import 'dotenv/config';
+import { pathToFileURL } from 'node:url';
 import { EZManagerSDK } from '../sdk.js';
+import { runReadPosition } from './readPosition.js';
 
 const POSITION_KEY = '';
 const COLLATERAL_USDC = '1'; // 1 USDC
+const SLIPPAGE_PCT = 0.005; // 0.5%
 
+export async function runAddCollateral({
+  sdk,
+  key = POSITION_KEY,
+  usdcAmount = COLLATERAL_USDC,
+  slippage = SLIPPAGE_PCT,
+  readAfter = true
+} = {}) {
+  if (!key) throw new Error('POSITION_KEY is required');
+  const localSdk = sdk ?? (await EZManagerSDK.fromEnv());
 
-function printJson(value) {
-  console.log(JSON.stringify(value, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
+  console.log('Adding collateral...');
+  const result = await localSdk.addCollateral({ key, usdcAmount, slippage });
+  console.log(`Collateral added! Tx: ${result.txHash}`);
+
+  let details = null;
+  if (readAfter) {
+    details = await runReadPosition({
+      sdk: localSdk,
+      key,
+      label: 'after addCollateral',
+      blockTag: result?.receipt?.blockNumber ?? 'latest'
+    });
+  }
+
+  return { result, details };
 }
 
-const sdk = await EZManagerSDK.fromEnv();
-console.log('Adding collateral...');
-const result = await sdk.addCollateral({ key: POSITION_KEY, usdcAmount: COLLATERAL_USDC });
-console.log(`Collateral added! Tx: ${result.txHash}`);
-const postBlockTag = result?.receipt?.blockNumber ?? 'latest';
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
-try {
-  const details = {
-    positionDetails: await sdk.getPositionDetailsReadable(POSITION_KEY, { blockTag: postBlockTag })
-  };
-  console.log('Details:');
-  printJson(details);
-} catch (err) {
-  console.log('position read failed:', String(err));
+if (isDirectRun) {
+  await runAddCollateral();
 }

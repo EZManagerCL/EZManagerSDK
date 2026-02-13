@@ -877,6 +877,19 @@ class EZManagerSDK:
             block_identifier=block_identifier,
         )
 
+    def get_user_position_details_readable(
+        self,
+        user: Optional[str] = None,
+        block_identifier: Any = 'latest',
+    ) -> List[Dict[str, Any]]:
+        keys = self.get_user_position_keys(user=user, block_identifier=block_identifier)
+        out: List[Dict[str, Any]] = []
+        for key in keys or []:
+            normalized_key = normalize_bytes32(key)
+            details = self.get_position_details_readable(normalized_key, block_identifier=block_identifier)
+            out.append({'key': normalized_key, 'position_details': details})
+        return out
+
     def get_position(self, key: str, block_identifier: Any = 'latest'):
         return self._call_fn(self.core.functions.getPosition(normalize_bytes32(key)), block_identifier=block_identifier)
 
@@ -888,17 +901,11 @@ class EZManagerSDK:
 
     def get_position_readable(self, key: str, block_identifier: Any = 'latest') -> Dict[str, Any]:
         raw = self.get_position(key, block_identifier=block_identifier)
-        readable = self._struct_to_readable_dict('getPosition', raw)
-        if isinstance(readable, dict):
-            readable['key'] = normalize_bytes32(key)
-        return readable
+        return self._struct_to_readable_dict('getPosition', raw)
 
     def get_position_details_readable(self, key: str, block_identifier: Any = 'latest') -> Dict[str, Any]:
         raw = self.get_position_details(key, block_identifier=block_identifier)
-        readable = self._struct_to_readable_dict('getPositionDetails', raw)
-        if isinstance(readable, dict):
-            readable['requestedKey'] = normalize_bytes32(key)
-        return readable
+        return self._struct_to_readable_dict('getPositionDetails', raw)
 
     def wait_for_position(
         self,

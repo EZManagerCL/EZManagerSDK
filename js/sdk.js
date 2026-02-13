@@ -676,6 +676,17 @@ export class EZManagerSDK {
     return this.core.listUserPositionKeys(user, { blockTag });
   }
 
+  async getUserPositionDetailsReadable(user = this.signer.address, { blockTag = 'latest' } = {}) {
+    const keys = await this.getUserPositionKeys(user, { blockTag });
+    const out = [];
+    for (const key of keys || []) {
+      const normalizedKey = normalizeBytes32(key);
+      const positionDetails = await this.getPositionDetailsReadable(normalizedKey, { blockTag });
+      out.push({ key: normalizedKey, positionDetails });
+    }
+    return out;
+  }
+
   async getPosition(key, { blockTag = 'latest' } = {}) {
     return this.core.getPosition(normalizeBytes32(key), { blockTag });
   }
@@ -699,16 +710,12 @@ export class EZManagerSDK {
 
   async getPositionReadable(key, { blockTag = 'latest' } = {}) {
     const raw = await this.getPosition(key, { blockTag });
-    const out = this._structToReadableObject('getPosition', raw);
-    out.key = normalizeBytes32(key);
-    return out;
+    return this._structToReadableObject('getPosition', raw);
   }
 
   async getPositionDetailsReadable(key, { blockTag = 'latest' } = {}) {
     const raw = await this.getPositionDetails(key, { blockTag });
-    const out = this._structToReadableObject('getPositionDetails', raw);
-    out.requestedKey = normalizeBytes32(key);
-    return out;
+    return this._structToReadableObject('getPositionDetails', raw);
   }
 
   async walletUsdcBalance() {

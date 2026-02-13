@@ -26,12 +26,15 @@
 ## Examples
 Each example defines its own input constants at the top of the file.
 - `node examples/openPosition.js`
+- `node examples/readPosition.js`
 - `node examples/addCollateral.js`
 - `node examples/removeCollateral.js`
 - `node examples/changeRange.js`
 - `node examples/compoundFees.js`
 - `node examples/collectFees.js`
 - `node examples/exitPosition.js`
+- `node examples/endToEnd.js`
+- `node examples/listUserPositions.js`
 
 ## Debug
 - Decode custom error data:

@@ -1,6 +1,7 @@
 # EZManager SDK (Python)
 
 ## Setup
+Requires Python `3.10+`.
 1. Copy `.env.example` to `.env`.
 2. Fill `.env` values.
 3. `pip install -r requirements.txt`
@@ -26,12 +27,15 @@
 ## Examples
 Each example defines its own input constants at the top of the file.
 - `python examples/openPosition.py`
+- `python examples/readPosition.py`
 - `python examples/addCollateral.py`
 - `python examples/removeCollateral.py`
 - `python examples/changeRange.py`
 - `python examples/compoundFees.py`
 - `python examples/collectFees.py`
 - `python examples/exitPosition.py`
+- `python examples/endToEnd.py`
+- `python examples/listUserPositions.py`
 
 ## Debug
 - Decode custom error data:

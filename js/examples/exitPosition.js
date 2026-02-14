@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { pathToFileURL } from 'node:url';
 import { EZManagerSDK } from '../sdk.js';
 
-const POSITION_KEY = '0x1bbdf6a6c66ef4cdcac283c42cb557f24c37b3ce2863becd608ca2b733c0e41b';
+const POSITION_KEY = '';
 const SLIPPAGE_PCT = 0.005; // 0.5%
 
 export async function runExitPosition({ sdk, key = POSITION_KEY, slippage = SLIPPAGE_PCT } = {}) {

@@ -397,6 +397,16 @@ export class EZManagerSDK {
     return out;
   }
 
+  _structArrayToReadableObjects(functionName, values) {
+    const names = this._getCoreStructFieldNames(functionName);
+    if (!names || !Array.isArray(values)) return this._normalizeReadableValue(values);
+    return values.map((value) => {
+      const out = {};
+      for (const name of names) out[name] = this._normalizeReadableValue(value?.[name]);
+      return out;
+    });
+  }
+
   extractOpenedKeyFromReceipt(receipt) {
     const events = this.decodeReceiptEvents({
       receipt,
@@ -674,6 +684,44 @@ export class EZManagerSDK {
 
   async getUserPositionKeys(user = this.signer.address, { blockTag = 'latest' } = {}) {
     return this.core.listUserPositionKeys(user, { blockTag });
+  }
+
+  async pendingFees(keys, { blockTag = 'latest' } = {}) {
+    const keyList = (Array.isArray(keys) ? keys : [keys]).map((k) => normalizeBytes32(k));
+    const raw = await this.core.pendingFees(keyList, { blockTag });
+    return this._structArrayToReadableObjects('pendingFees', raw);
+  }
+
+  async spotAmounts(key, { blockTag = 'latest' } = {}) {
+    const raw = await this.core.spotAmounts(normalizeBytes32(key), { blockTag });
+    return {
+      amt0: toBigInt(raw?.amt0 ?? raw?.[0] ?? 0n),
+      amt1: toBigInt(raw?.amt1 ?? raw?.[1] ?? 0n),
+      owed0: toBigInt(raw?.owed0 ?? raw?.[2] ?? 0n),
+      owed1: toBigInt(raw?.owed1 ?? raw?.[3] ?? 0n)
+    };
+  }
+
+  async isPoolAllowed(pool, { blockTag = 'latest' } = {}) {
+    return Boolean(await this.core.isPoolAllowed(ethers.getAddress(pool), { blockTag }));
+  }
+
+  async isPoolDeprecated(pool, { blockTag = 'latest' } = {}) {
+    return Boolean(await this.core.isPoolDeprecated(ethers.getAddress(pool), { blockTag }));
+  }
+
+  async listAllowedPools({ blockTag = 'latest' } = {}) {
+    const pools = await this.core.listAllowedPools({ blockTag });
+    return Array.from(pools || [])
+      .map((p) => String(p))
+      .filter((p) => /^0x[0-9a-fA-F]{40}$/.test(p) && p !== ethers.ZeroAddress)
+      .map((p) => ethers.getAddress(p));
+  }
+
+  async positionValueUsdc(keys, { blockTag = 'latest' } = {}) {
+    const keyList = (Array.isArray(keys) ? keys : [keys]).map((k) => normalizeBytes32(k));
+    const raw = await this.core.positionValueUSDC(keyList, { blockTag });
+    return this._structArrayToReadableObjects('positionValueUSDC', raw);
   }
 
   async getUserPositionDetailsReadable(user = this.signer.address, { blockTag = 'latest' } = {}) {

@@ -23,6 +23,12 @@ Requires Python `3.10+`.
 - `compound_fees`
 - `collect_fees_to_usdc`
 - `exit_position`
+- `pending_fees`
+- `spot_amounts`
+- `is_pool_allowed`
+- `is_pool_deprecated`
+- `list_allowed_pools`
+- `position_value_usdc`
 
 ## Examples
 Each example defines its own input constants at the top of the file.

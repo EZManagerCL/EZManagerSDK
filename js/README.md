@@ -22,6 +22,12 @@
 - `compoundFees`
 - `collectFeesToUSDC`
 - `exitPosition`
+- `pendingFees`
+- `spotAmounts`
+- `isPoolAllowed`
+- `isPoolDeprecated`
+- `listAllowedPools`
+- `positionValueUsdc`
 
 ## Examples
 Each example defines its own input constants at the top of the file.

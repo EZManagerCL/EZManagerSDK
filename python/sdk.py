@@ -165,6 +165,23 @@ class EZManagerSDK:
             out[name] = self._normalize_read_value(value[idx])
         return out
 
+    def _struct_array_to_readable_dicts(self, function_name: str, values: Any) -> Any:
+        names = self._get_core_struct_field_names(function_name)
+        if not names or not isinstance(values, (list, tuple)):
+            return self._normalize_read_value(values)
+        out: List[Dict[str, Any]] = []
+        for row in values:
+            if not isinstance(row, (list, tuple)):
+                out.append({'value': self._normalize_read_value(row)})
+                continue
+            item: Dict[str, Any] = {}
+            for idx, name in enumerate(names):
+                if idx >= len(row):
+                    break
+                item[name] = self._normalize_read_value(row[idx])
+            out.append(item)
+        return out
+
     def _extract_revert_data(self, err: Exception) -> Optional[str]:
         queue: List[Any] = [err, getattr(err, 'data', None)]
         if hasattr(err, 'args'):
@@ -876,6 +893,54 @@ class EZManagerSDK:
             from_address=target_user,
             block_identifier=block_identifier,
         )
+
+    def pending_fees(self, keys: Sequence[str] | str, block_identifier: Any = 'latest') -> List[Dict[str, Any]]:
+        key_list = [normalize_bytes32(keys)] if isinstance(keys, str) else [normalize_bytes32(k) for k in keys]
+        raw = self._call_fn(
+            self.core.functions.pendingFees(key_list),
+            block_identifier=block_identifier,
+        )
+        return self._struct_array_to_readable_dicts('pendingFees', raw)
+
+    def spot_amounts(self, key: str, block_identifier: Any = 'latest') -> Dict[str, Any]:
+        raw = self._call_fn(
+            self.core.functions.spotAmounts(normalize_bytes32(key)),
+            block_identifier=block_identifier,
+        )
+        return {
+            'amt0': self._normalize_read_value(raw[0]),
+            'amt1': self._normalize_read_value(raw[1]),
+            'owed0': self._normalize_read_value(raw[2]),
+            'owed1': self._normalize_read_value(raw[3]),
+        }
+
+    def is_pool_allowed(self, pool: str, block_identifier: Any = 'latest') -> bool:
+        return bool(
+            self._call_fn(
+                self.core.functions.isPoolAllowed(Web3.to_checksum_address(pool)),
+                block_identifier=block_identifier,
+            )
+        )
+
+    def is_pool_deprecated(self, pool: str, block_identifier: Any = 'latest') -> bool:
+        return bool(
+            self._call_fn(
+                self.core.functions.isPoolDeprecated(Web3.to_checksum_address(pool)),
+                block_identifier=block_identifier,
+            )
+        )
+
+    def list_allowed_pools(self, block_identifier: Any = 'latest') -> List[str]:
+        pools = self._call_fn(self.core.functions.listAllowedPools(), block_identifier=block_identifier)
+        return [Web3.to_checksum_address(p) for p in pools or [] if int(p, 16) != 0]
+
+    def position_value_usdc(self, keys: Sequence[str] | str, block_identifier: Any = 'latest') -> List[Dict[str, Any]]:
+        key_list = [normalize_bytes32(keys)] if isinstance(keys, str) else [normalize_bytes32(k) for k in keys]
+        raw = self._call_fn(
+            self.core.functions.positionValueUSDC(key_list),
+            block_identifier=block_identifier,
+        )
+        return self._struct_array_to_readable_dicts('positionValueUSDC', raw)
 
     def get_user_position_details_readable(
         self,

@@ -1,5 +1,26 @@
 # Allowlisted Pools
 
+## Ethereum Mainnet (`mainnet`, chainId `1`)
+
+| DEX | Pair | Fee tier | Tick spacing | Pool |
+|---|---|---:|---:|---|
+| Uniswap | WETH/USDC | 500 | 10 | `0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640` |
+| Uniswap | WETH/USDT | 3000 | 60 | `0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36` |
+| Uniswap | WBTC/WETH | 3000 | 60 | `0xCBCdF9626bC03E24f779434178A73a0B4bad62eD` |
+| Uniswap | WBTC/WETH | 500 | 10 | `0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0` |
+| Uniswap | WBTC/USDC | 3000 | 60 | `0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35` |
+| Uniswap | WBTC/USDT | 3000 | 60 | `0x9Db9e0e53058C89e5B94e29621a205198648425B` |
+| Uniswap | WETH/USDC | 3000 | 60 | `0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8` |
+| Uniswap | WBTC/USDT | 500 | 10 | `0x56534741CD8B152df6d48AdF7ac51f75169A83b2` |
+| Uniswap | LINK/WETH | 3000 | 60 | `0xa6Cc3C2531FdaA6Ae1A3CA84c2855806728693e8` |
+| Uniswap | UNI/WETH | 3000 | 60 | `0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801` |
+| Uniswap | XAUt/USDT | 500 | 10 | `0x6546055f46e866a4B9a4A13e81273e3152BAE5dA` |
+| Uniswap | AAVE/WETH | 3000 | 60 | `0x5aB53EE1d50eeF2C1DD3d5402789cd27bB52c1bB` |
+| Uniswap | EUROC/USDC | 500 | 10 | `0x95DBB3C7546F22BCE375900AbFdd64a4E5bD73d6` |
+| Uniswap | WETH/wstETH | 100 | 1 | `0x109830a1AAaD605BbF02a9dFA7B0B92EC2FB7dAa` |
+
+## Base (`base`, chainId `8453`)
+
 | DEX | Pair | Fee tier | Tick spacing | Pool |
 |---|---|---:|---:|---|
 | Aerodrome | WETH/USDC | - | 100 | `0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59` |

@@ -14,10 +14,22 @@ def load_json(path: Path) -> Any:
         return json.load(f)
 
 
-def load_addresses(addresses_path: Path | None = None) -> Dict[str, str]:
+def load_addresses(addresses_path: Path | None = None, chain_id: int | str | None = None) -> Dict[str, str]:
     if addresses_path is None:
         addresses_path = Path(__file__).resolve().parent / 'addresses.json'
-    return load_json(addresses_path)
+    parsed = load_json(addresses_path)
+    if not isinstance(parsed, dict):
+        raise ValueError('addresses.json must be a JSON object keyed by chain name')
+    if isinstance(parsed.get('CLManager'), str):
+        raise ValueError('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base)')
+
+    chain_key = 'base' if chain_id is None else str(chain_id)
+    chain_name = 'mainnet' if chain_key == '1' else ('base' if chain_key == '8453' else chain_key)
+    source = parsed.get('chains') if isinstance(parsed.get('chains'), dict) else parsed
+    selected = source.get(chain_name) or source.get(chain_key) or source.get('base')
+    if not isinstance(selected, dict) or not isinstance(selected.get('CLManager'), str):
+        raise ValueError(f'addresses.json missing addresses for chain {chain_key}')
+    return selected
 
 
 def load_abi_map(abi_dir: Path | None = None) -> Dict[str, list]:

@@ -13,6 +13,19 @@ Each language folder is self-contained with:
 - SDK + utilities
 - `examples/` for core user flows
 
+## Chain-Specific Configuration
+Address and pool configuration is chain-specific.
+
+- Address files are keyed by chain name (`mainnet`, `base`):
+	- `js/addresses.json`
+	- `python/addresses.json`
+- Supported automatic chain selection:
+	- Ethereum Mainnet (`chainId=1`) -> `mainnet`
+	- Base (`chainId=8453`) -> `base`
+- Any unrecognized chain currently falls back to `base`.
+
+Each language folder also includes chain-scoped allowlisted pools in `ALLOWED_POOLS.md`.
+
 ## Choose a Language
 
 Clone the repository:

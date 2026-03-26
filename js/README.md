@@ -13,6 +13,15 @@
 - `TX_GAS_BUFFER_BPS` (default `2000` = +20%)
 - `TX_GAS_BUFFER_MIN` (default `50000` gas)
 
+## Chain-Specific Setup
+- Addresses are configured in `addresses.json` and must be keyed by chain name:
+  - `mainnet`
+  - `base`
+- SDK chain selection in `EZManagerSDK.fromEnv()`:
+  - `chainId=1` -> `mainnet`
+  - `chainId=8453` -> `base`
+  - any other chain -> `base` fallback
+
 ## Core Methods
 - `openPosition`
 - `addCollateral`
@@ -48,4 +57,4 @@ Each example defines its own input constants at the top of the file.
 - SDK write calls attempt custom error decoding on reverts and include extra diagnostics for status=0 failures (including out-of-gas trace hints when available).
 
 ## Allowlisted Pools
-See `ALLOWED_POOLS.md`.
+See `ALLOWED_POOLS.md` for chain-scoped allowlisted pools (`mainnet` and `base`).

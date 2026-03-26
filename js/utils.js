@@ -15,8 +15,26 @@ export function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-export function loadAddresses(addressesPath = path.join(__dirname, 'addresses.json')) {
-  return loadJson(addressesPath);
+export function loadAddresses(addressesPath = path.join(__dirname, 'addresses.json'), chainId = null) {
+  const parsed = loadJson(addressesPath);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('addresses.json must be a JSON object keyed by chain name');
+  }
+  if (typeof parsed.CLManager === 'string') {
+    throw new Error('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base)');
+  }
+
+  const chainKey = chainId == null ? 'base' : String(chainId);
+  const chainName = chainKey === '1' ? 'mainnet' : (chainKey === '8453' ? 'base' : chainKey);
+  const source = parsed?.chains && typeof parsed.chains === 'object' && !Array.isArray(parsed.chains)
+    ? parsed.chains
+    : parsed;
+  const selected = source?.[chainName] ?? source?.[chainKey] ?? source?.base;
+  const selectedIsAddressMap = selected && typeof selected === 'object' && !Array.isArray(selected) && typeof selected.CLManager === 'string';
+  if (!selectedIsAddressMap) {
+    throw new Error(`addresses.json missing addresses for chain ${chainKey}`);
+  }
+  return selected;
 }
 
 export function loadAbiMap(abiDir = path.join(__dirname, 'abi')) {

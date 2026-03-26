@@ -74,13 +74,14 @@ export class EZManagerSDK {
     if (!rpcUrl) throw new Error('RPC_URL is required');
     if (!privateKey) throw new Error('PRIVATE_KEY is required');
 
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const network = await provider.getNetwork();
     const abi = loadAbiMap(abiDir);
-    const addresses = loadAddresses(addressesPath);
+    const addresses = loadAddresses(addressesPath, network.chainId);
     if (!addresses.CLManager) {
       throw new Error('addresses.json missing CLManager');
     }
 
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
     const signer = new ethers.Wallet(privateKey, provider);
     const manager = new ethers.Contract(addresses.CLManager, abi.CL_MANAGER, signer);
     const coreAddress = await manager.CORE();

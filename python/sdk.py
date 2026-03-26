@@ -491,7 +491,7 @@ class EZManagerSDK:
         web3 = Web3(Web3.HTTPProvider(rpc))
         account = Account.from_key(pk)
 
-        addresses = load_addresses(addresses_path)
+        addresses = load_addresses(addresses_path, web3.eth.chain_id)
         abi = load_abi_map(abi_dir)
 
         manager = web3.eth.contract(address=Web3.to_checksum_address(addresses['CLManager']), abi=abi['CL_MANAGER'])

@@ -18,9 +18,11 @@ Requires Python `3.10+`.
 - Addresses are configured in `addresses.json` and must be keyed by chain name:
   - `mainnet`
   - `base`
+  - `arbitrum`
 - SDK chain selection in `EZManagerSDK.from_env()`:
   - `chain_id=1` -> `mainnet`
   - `chain_id=8453` -> `base`
+  - `chain_id=42161` -> `arbitrum`
   - any other chain -> `base` fallback
 
 ## Core Methods
@@ -58,4 +60,46 @@ Each example defines its own input constants at the top of the file.
 - SDK write calls attempt custom error decoding on reverts and include extra diagnostics for status=0 failures (including out-of-gas trace hints when available).
 
 ## Allowlisted Pools
-See `ALLOWED_POOLS.md` for chain-scoped allowlisted pools (`mainnet` and `base`).
+See `ALLOWED_POOLS.md` for chain-scoped allowlisted pools (`mainnet`, `base`, and `arbitrum`).
+
+## Strategy Harness
+- Shared runtime: `python/strategy.py`
+- User strategies: `python/strategies/`
+- Per-strategy state JSON: `python/state/<strategy-name>.json`
+- Repo-local Codex skill: `skills/ezmanager-strategy`
+- Claude Code project instructions: `CLAUDE.md`
+
+The strategy harness is intentionally small:
+- `run_strategy(...)` polls managed positions, loads/saves JSON state, reads normalized snapshots, and executes returned actions.
+- User strategy files own the policy logic by defining `decide(snapshot, state, config)` and, when needed, helpers like `choose_range(...)`.
+- Strategy config is human-readable. For example, use `10` for `$10 USDC`; the runtime exposes `usdc_to_raw(...)` when a strategy needs raw on-chain units.
+- Range decisions should be made in price space by returning `lower_price` and `upper_price`.
+- New strategy files should start with a large plain-English header comment describing behavior, triggers, state, and execute mode.
+
+Example:
+- `python strategies/example_strategy.py`
+- Set `position_keys`
+- Leave `EXECUTE = False` for dry-run planning
+- Switch `EXECUTE = True` to submit transactions
+
+Quick non-coder workflow:
+1. Fill `python/.env` with `RPC_URL` and `PRIVATE_KEY`.
+2. Ask Claude Code or Codex to create a strategy in plain language.
+3. Paste your position key into the generated file's `CONFIG["position_keys"]`.
+4. Run the script with `EXECUTE = False`.
+5. Switch to `EXECUTE = True` only after the planned actions look correct.
+
+Example agent prompt:
+
+```text
+Use the EZManager strategy skill in this repo to create a strategy that rebalances to +-5% if price is out of range for 10 minutes and compounds fees above $10.
+```
+
+The repo-local skill is intended to turn plain-language strategy requests into runnable files in `python/strategies/` using the shared runtime.
+
+Relevant AI files:
+- `skills/ezmanager-strategy/SKILL.md`
+- `skills/ezmanager-strategy/CLAUDE.md`
+- `skills/ezmanager-strategy/references/repo-contract.md`
+- `CLAUDE.md`
+- `AGENT.md`

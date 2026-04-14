@@ -1,0 +1,7 @@
+interface:
+  display_name: "EZManager Strategy"
+  short_description: "Generate EZManager strategy scripts"
+  default_prompt: "Use $ezmanager-strategy to create or update a Python EZManager strategy script in this repo."
+
+policy:
+  allow_implicit_invocation: true

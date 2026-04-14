@@ -17,9 +17,11 @@
 - Addresses are configured in `addresses.json` and must be keyed by chain name:
   - `mainnet`
   - `base`
+  - `arbitrum`
 - SDK chain selection in `EZManagerSDK.fromEnv()`:
   - `chainId=1` -> `mainnet`
   - `chainId=8453` -> `base`
+  - `chainId=42161` -> `arbitrum`
   - any other chain -> `base` fallback
 
 ## Core Methods
@@ -57,4 +59,4 @@ Each example defines its own input constants at the top of the file.
 - SDK write calls attempt custom error decoding on reverts and include extra diagnostics for status=0 failures (including out-of-gas trace hints when available).
 
 ## Allowlisted Pools
-See `ALLOWED_POOLS.md` for chain-scoped allowlisted pools (`mainnet` and `base`).
+See `ALLOWED_POOLS.md` for chain-scoped allowlisted pools (`mainnet`, `base`, and `arbitrum`).

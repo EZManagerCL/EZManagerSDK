@@ -18,5 +18,14 @@
     "TimelockController": "0x93e4a14ec4d39cf55f23cc121cC810943588c872",
     "UniswapAdapter": "0x0e5d5ADE8E9f5ddc2df1CAeBc63EA37c1fC5be3B",
     "Valuation": "0xAe79B33073B8eE252de6B13a6dfF63ed3871a548"
+  },
+  "arbitrum": {
+    "CLCore": "0xD52170Ae01B9198246842D9a4Ad964AcD786ae91",
+    "CLManager": "0xbe682dE7356cD5E5908400fd271B44Fa4f350269",
+    "ProtocolReserve": "0x149A9A5b2472553253Aa532842F358De9b0d8eE6",
+    "RebalancePlanner": "0x49e4d4021b624f5cabE8e3dC8eaA6a52261C7a58",
+    "TimelockController": "0xaB9e67EAA99d6D69778A3AF7c7120684DF6d5611",
+    "UniswapAdapter": "0xC0Fac58F632B4BE80e9C040134cB6867B0F6FC1D",
+    "Valuation": "0xf6d5CE9cF5BB0C63a5C8b6e17dc2a58CBD3d7d6C"
   }
 }

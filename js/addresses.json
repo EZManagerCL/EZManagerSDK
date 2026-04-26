@@ -27,5 +27,23 @@
     "TimelockController": "0xaB9e67EAA99d6D69778A3AF7c7120684DF6d5611",
     "UniswapAdapter": "0xC0Fac58F632B4BE80e9C040134cB6867B0F6FC1D",
     "Valuation": "0xf6d5CE9cF5BB0C63a5C8b6e17dc2a58CBD3d7d6C"
+  },
+  "bnb": {
+    "CLCore": "0x10c6d38F0c19c09b7cEFDE5F42494e4FECA08EB2",
+    "CLManager": "0x6e1318D3b72D47abf80C9A3a47Df140669839A9C",
+    "PancakeSwapAdapter": "0xaebfc272E575Cf38721c30a60A018c6de49CFd3f",
+    "ProtocolReserve": "0xf3aF047b66aD5D38fE7F2471Bb401789a47B5889",
+    "RebalancePlanner": "0x0c22E5EEE1E0604B7dd9A4d5859885EfF63b8658",
+    "TimelockController": "0x16e38a8ef26F58F0aF08BE19515e71B8D7a01C6b",
+    "Valuation": "0xbcdD7354ECdDF2a4b1308175eEc9b0f5dD2EDC10"
+  },
+  "hyperevm": {
+    "CLCore": "0x6F81790Ebac25497be379Dc66143fb298663Ae11",
+    "CLManager": "0x2932308142E3F9e7b4Ac7a3b9c5067f808cFCf64",
+    "ProjectXAdapter": "0xaB264652495D3d0bDccfCCcC308C794eA0160312",
+    "ProtocolReserve": "0x43Ea78157b39fbAcC599162F63b855E4A8D49799",
+    "RebalancePlanner": "0x332eDDFAD474B4CfeB3DAb8b437ecec21e4ae0F9",
+    "TimelockController": "0x389170532BD6838C238F39b0efa1B1Ae1650C398",
+    "Valuation": "0x5A049dbfed26B5f06C8C657450D5Aa5B8aA04cC7"
   }
 }

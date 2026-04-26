@@ -21,13 +21,13 @@ export function loadAddresses(addressesPath = path.join(__dirname, 'addresses.js
     throw new Error('addresses.json must be a JSON object keyed by chain name');
   }
   if (typeof parsed.CLManager === 'string') {
-    throw new Error('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum)');
+    throw new Error('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum/bnb/hyperevm)');
   }
 
   const chainKey = chainId == null ? 'base' : String(chainId);
   const chainName = chainKey === '1'
     ? 'mainnet'
-    : (chainKey === '8453' ? 'base' : (chainKey === '42161' ? 'arbitrum' : chainKey));
+    : (chainKey === '8453' ? 'base' : (chainKey === '42161' ? 'arbitrum' : (chainKey === '56' ? 'bnb' : (chainKey === '999' ? 'hyperevm' : chainKey))));
   const source = parsed?.chains && typeof parsed.chains === 'object' && !Array.isArray(parsed.chains)
     ? parsed.chains
     : parsed;

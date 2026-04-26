@@ -21,10 +21,10 @@ def load_addresses(addresses_path: Path | None = None, chain_id: int | str | Non
     if not isinstance(parsed, dict):
         raise ValueError('addresses.json must be a JSON object keyed by chain name')
     if isinstance(parsed.get('CLManager'), str):
-        raise ValueError('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum)')
+        raise ValueError('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum/bnb/hyperevm)')
 
     chain_key = 'base' if chain_id is None else str(chain_id)
-    chain_name = 'mainnet' if chain_key == '1' else ('base' if chain_key == '8453' else ('arbitrum' if chain_key == '42161' else chain_key))
+    chain_name = 'mainnet' if chain_key == '1' else ('base' if chain_key == '8453' else ('arbitrum' if chain_key == '42161' else ('bnb' if chain_key == '56' else ('hyperevm' if chain_key == '999' else chain_key))))
     source = parsed.get('chains') if isinstance(parsed.get('chains'), dict) else parsed
     selected = source.get(chain_name) or source.get(chain_key) or source.get('base')
     if not isinstance(selected, dict) or not isinstance(selected.get('CLManager'), str):

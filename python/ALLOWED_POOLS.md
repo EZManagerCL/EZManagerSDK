@@ -1,25 +1,8 @@
-# Allowlisted Pools
+# Allowed Pools
 
-## Ethereum Mainnet (`mainnet`, chainId `1`)
+Mirrors https://docs.ezmanager.finance/allowed-pools
 
-| DEX | Pair | Fee tier | Tick spacing | Pool |
-|---|---|---:|---:|---|
-| Uniswap | WETH/USDC | 500 | 10 | `0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640` |
-| Uniswap | WETH/USDT | 3000 | 60 | `0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36` |
-| Uniswap | WBTC/WETH | 3000 | 60 | `0xCBCdF9626bC03E24f779434178A73a0B4bad62eD` |
-| Uniswap | WBTC/WETH | 500 | 10 | `0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0` |
-| Uniswap | WBTC/USDC | 3000 | 60 | `0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35` |
-| Uniswap | WBTC/USDT | 3000 | 60 | `0x9Db9e0e53058C89e5B94e29621a205198648425B` |
-| Uniswap | WETH/USDC | 3000 | 60 | `0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8` |
-| Uniswap | WBTC/USDT | 500 | 10 | `0x56534741CD8B152df6d48AdF7ac51f75169A83b2` |
-| Uniswap | LINK/WETH | 3000 | 60 | `0xa6Cc3C2531FdaA6Ae1A3CA84c2855806728693e8` |
-| Uniswap | UNI/WETH | 3000 | 60 | `0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801` |
-| Uniswap | XAUt/USDT | 500 | 10 | `0x6546055f46e866a4B9a4A13e81273e3152BAE5dA` |
-| Uniswap | AAVE/WETH | 3000 | 60 | `0x5aB53EE1d50eeF2C1DD3d5402789cd27bB52c1bB` |
-| Uniswap | EUROC/USDC | 500 | 10 | `0x95DBB3C7546F22BCE375900AbFdd64a4E5bD73d6` |
-| Uniswap | WETH/wstETH | 100 | 1 | `0x109830a1AAaD605BbF02a9dFA7B0B92EC2FB7dAa` |
-
-## Base (`base`, chainId `8453`)
+## Base
 
 | DEX | Pair | Fee tier | Tick spacing | Pool |
 |---|---|---:|---:|---|
@@ -39,7 +22,25 @@
 | Uniswap | USDC/cbBTC | 500 | 10 | `0xfBB6Eed8e7aa03B138556eeDaF5D271A5E1e43ef` |
 | Uniswap | ZORA/USDC | 3000 | 60 | `0xEdc625B74537eE3a10874f53D170E9c17A906B9c` |
 
-## Arbitrum (`arbitrum`, chainId `42161`)
+## BNB Chain
+
+| DEX | Pair | Fee tier | Tick spacing | Pool |
+|---|---|---:|---:|---|
+| PancakeSwap | USDT/WBNB | 100 | 1 | `0x172fcD41E0913e95784454622d1c3724f546f849` |
+| PancakeSwap | USDT/USDC | 100 | 1 | `0x92b7807bF19b7DDdf89b706143896d05228f3121` |
+| PancakeSwap | WETH/USDT | 500 | 10 | `0xBe141893E4c6AD9272e8C04BAB7E6a10604501a5` |
+| PancakeSwap | WETH/USDT | 100 | 1 | `0x9F599F3D64a9D99eA21e68127Bb6CE99f893DA61` |
+| PancakeSwap | BTCB/USDT | 500 | 10 | `0x46Cf1cF8c69595804ba91dFdd8d6b960c9B0a7C4` |
+| PancakeSwap | WBNB/USDC | 100 | 1 | `0xf2688Fb5B81049DFB7703aDa5e770543770612C4` |
+| PancakeSwap | WETH/WBNB | 500 | 10 | `0xD0e226f674bBf064f54aB47F42473fF80DB98CBA` |
+| PancakeSwap | WETH/WBNB | 100 | 1 | `0x62Fcb3C1794FB95BD8B1A97f6Ad5D8a7e4943a1e` |
+| PancakeSwap | BTCB/WBNB | 100 | 1 | `0x62Edaf2a56c9FB55be5F9B1399Ac067f6a37013b` |
+| PancakeSwap | BTCB/WETH | 500 | 10 | `0x4BBA1018b967e59220b22Ca03f68821A3276c9a6` |
+| PancakeSwap | BTCB/WBNB | 500 | 10 | `0x6bbc40579ad1BBD243895cA0ACB086BB6300d636` |
+| PancakeSwap | CAKE/USDT | 2500 | 50 | `0x7f51c8AaA6B0599aBd16674e2b17FEc7a9f674A1` |
+| PancakeSwap | CAKE/WBNB | 2500 | 50 | `0x133B3D95bAD5405d14d53473671200e9342896BF` |
+
+## Arbitrum
 
 | DEX | Pair | Fee tier | Tick spacing | Pool |
 |---|---|---:|---:|---|
@@ -49,3 +50,32 @@
 | Uniswap | WBTC/USDT | 500 | 10 | `0x5969EFddE3cF5C0D9a88aE51E47d721096A97203` |
 | Uniswap | ARB/WETH | 500 | 10 | `0xC6F780497A95e246EB9449f5e4770916DCd6396A` |
 | Uniswap | USDT/USDC | 100 | 1 | `0xbE3aD6a5669Dc0B8b12FeBC03608860C31E2eef6` |
+
+## Ethereum Mainnet
+
+| DEX | Pair | Fee tier | Tick spacing | Pool |
+|---|---|---:|---:|---|
+| Uniswap | WETH/USDC | 500 | 10 | `0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640` |
+| Uniswap | WETH/USDT | 3000 | 60 | `0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36` |
+| Uniswap | WBTC/WETH | 3000 | 60 | `0xCBCdF9626bC03E24f779434178A73a0B4bad62eD` |
+| Uniswap | WBTC/WETH | 500 | 10 | `0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0` |
+| Uniswap | WBTC/USDC | 3000 | 60 | `0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35` |
+| Uniswap | WBTC/USDT | 3000 | 60 | `0x9Db9e0e53058C89e5B94e29621a205198648425B` |
+| Uniswap | WETH/USDC | 3000 | 60 | `0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8` |
+| Uniswap | WBTC/USDT | 500 | 10 | `0x56534741CD8B152df6d48AdF7ac51f75169A83b2` |
+| Uniswap | LINK/WETH | 3000 | 60 | `0xa6Cc3C2531FdaA6Ae1A3CA84c2855806728693e8` |
+| Uniswap | UNI/WETH | 3000 | 60 | `0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801` |
+| Uniswap | XAUt/USDT | 500 | 10 | `0x6546055f46e866a4B9a4A13e81273e3152BAE5dA` |
+| Uniswap | AAVE/WETH | 3000 | 60 | `0x5aB53EE1d50eeF2C1DD3d5402789cd27bB52c1bB` |
+| Uniswap | EUROC/USDC | 500 | 10 | `0x95DBB3C7546F22BCE375900AbFdd64a4E5bD73d6` |
+| Uniswap | WETH/wstETH | 100 | 1 | `0x109830a1AAaD605BbF02a9dFA7B0B92EC2FB7dAa` |
+
+## HyperEVM
+
+| DEX | Pair | Fee tier | Tick spacing | Pool |
+|---|---|---:|---:|---|
+| Project X | kHYPE/WHYPE | - | - | `0xbe352daF66af94ccF2012a154a67DAEF95FAcB91` |
+| Project X | USDC/WHYPE | - | - | `0x6c9A33E3b592C0d65B3Ba59355d5Be0d38259285` |
+| Project X | USDt0/WHYPE | - | - | `0xBd19E19E4b70eB7F248695a42208bc1EdBBFb57D` |
+| Project X | UETH/WHYPE | - | - | `0xaf80230eB13222DB743C21762f65A046bb5F5437` |
+| Project X | UBTC/WHYPE | - | - | `0x0D6ECB912b6ee160e95Bc198b618Acc1bCb92525` |

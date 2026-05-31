@@ -489,7 +489,7 @@ export class EZManagerSDK {
     });
   }
 
-  async openPosition({ poolAddress, tickLower, tickUpper, usdcAmount, slippageBps = 50 }) {
+  async openPosition({ poolAddress, tickLower, tickUpper, usdcAmount, botAllowed = false, slippageBps = 50 }) {
     if (!poolAddress) throw new Error('openPosition: poolAddress required');
     if (tickLower == null || tickUpper == null) throw new Error('openPosition: tickLower and tickUpper required');
     if (usdcAmount == null) throw new Error('openPosition: usdcAmount required');
@@ -499,13 +499,13 @@ export class EZManagerSDK {
 
     const { tx, receipt } = await this._sendContractTx(
       this.manager,
-      'openPosition',
-      [poolAddress, Number(tickLower), Number(tickUpper), amountRaw, Number(slippageBps)]
+      'openPosition(address,int24,int24,uint256,bool,uint256)',
+      [poolAddress, Number(tickLower), Number(tickUpper), amountRaw, Boolean(botAllowed), Number(slippageBps)]
     );
     return { txHash: this._formatTxHash(tx.hash), receipt, positionKey: this.extractOpenedKeyFromReceipt(receipt) };
   }
 
-  async openPositionByPct({ poolAddress, usdcAmount, lowerPct, upperPct, rangePct, slippage = 0.005 }) {
+  async openPositionByPct({ poolAddress, usdcAmount, lowerPct, upperPct, rangePct, botAllowed = false, slippage = 0.005 }) {
     if (rangePct != null && (lowerPct == null && upperPct == null)) {
       lowerPct = Number(rangePct);
       upperPct = Number(rangePct);
@@ -528,11 +528,12 @@ export class EZManagerSDK {
       tickLower: range.tickLower,
       tickUpper: range.tickUpper,
       usdcAmount,
+      botAllowed,
       slippageBps: toSlippageBps(slippage)
     });
   }
 
-  async openPositionByPrice({ poolAddress, priceLower, priceUpper, usdcAmount, slippage = 0.005 }) {
+  async openPositionByPrice({ poolAddress, priceLower, priceUpper, usdcAmount, botAllowed = false, slippage = 0.005 }) {
     const ctx = await resolvePoolContext(this.provider, this.abi, this.core, poolAddress);
     const ticks = await ticksFromPrices({
       provider: this.provider,
@@ -549,6 +550,7 @@ export class EZManagerSDK {
       tickLower: ticks.tickLower,
       tickUpper: ticks.tickUpper,
       usdcAmount,
+      botAllowed,
       slippageBps: toSlippageBps(slippage)
     });
   }

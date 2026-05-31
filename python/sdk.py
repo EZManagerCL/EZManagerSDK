@@ -748,7 +748,15 @@ class EZManagerSDK:
                 continue
         raise ValueError('No allowlisted adapter validated this pool')
 
-    def open_position(self, pool_address: str, tick_lower: int, tick_upper: int, usdc_amount: str | float | int, slippage_bps: int = 50):
+    def open_position(
+        self,
+        pool_address: str,
+        tick_lower: int,
+        tick_upper: int,
+        usdc_amount: str | float | int,
+        slippage_bps: int = 50,
+        bot_allowed: bool = False,
+    ):
         amount_raw = self.parse_usdc(usdc_amount)
         self.ensure_usdc_allowance(self.addresses['CLManager'], amount_raw)
         result = self._send_fn(
@@ -757,6 +765,7 @@ class EZManagerSDK:
                 int(tick_lower),
                 int(tick_upper),
                 int(amount_raw),
+                bool(bot_allowed),
                 int(slippage_bps),
             )
         )
@@ -771,6 +780,7 @@ class EZManagerSDK:
         upper_pct: Optional[float] = None,
         range_pct: Optional[float] = None,
         slippage: float = 0.005,
+        bot_allowed: bool = False,
     ):
         if range_pct is not None and (lower_pct is None and upper_pct is None):
             lower_pct = float(range_pct)
@@ -793,9 +803,17 @@ class EZManagerSDK:
         upper_raw = current_tick + (math.log(1 + float(upper_pct)) / math.log(1.0001))
         tick_lower, tick_upper = normalize_tick_bounds(lower_raw, upper_raw, spacing)
 
-        return self.open_position(pool_address, tick_lower, tick_upper, usdc_amount, to_slippage_bps(slippage))
+        return self.open_position(pool_address, tick_lower, tick_upper, usdc_amount, to_slippage_bps(slippage), bot_allowed=bot_allowed)
 
-    def open_position_by_price(self, pool_address: str, price_lower: float, price_upper: float, usdc_amount: str | float | int, slippage: float = 0.005):
+    def open_position_by_price(
+        self,
+        pool_address: str,
+        price_lower: float,
+        price_upper: float,
+        usdc_amount: str | float | int,
+        slippage: float = 0.005,
+        bot_allowed: bool = False,
+    ):
         ctx = self._resolve_pool_context(pool_address)
         erc0 = self.web3.eth.contract(address=ctx['token0'], abi=self.abi['ERC20'])
         erc1 = self.web3.eth.contract(address=ctx['token1'], abi=self.abi['ERC20'])
@@ -804,7 +822,7 @@ class EZManagerSDK:
         lo = min(float(price_lower), float(price_upper))
         hi = max(float(price_lower), float(price_upper))
         tick_lower, tick_upper = normalize_tick_bounds(price_to_tick(lo, dec0, dec1), price_to_tick(hi, dec0, dec1), max(1, int(ctx['tick_spacing'])))
-        return self.open_position(pool_address, tick_lower, tick_upper, usdc_amount, to_slippage_bps(slippage))
+        return self.open_position(pool_address, tick_lower, tick_upper, usdc_amount, to_slippage_bps(slippage), bot_allowed=bot_allowed)
 
     def add_collateral(self, key: str, usdc_amount: str | float | int, slippage: float = 0.005):
         amount_raw = self.parse_usdc(usdc_amount)

@@ -11,6 +11,15 @@ export const LN_1P0001 = Math.log(1.0001);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export const CHAIN_ID_TO_NAME = Object.freeze({
+  '1': 'mainnet',
+  '56': 'bnb',
+  '999': 'hyperevm',
+  '4663': 'robinhood',
+  '8453': 'base',
+  '42161': 'arbitrum'
+});
+
 export function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -21,13 +30,11 @@ export function loadAddresses(addressesPath = path.join(__dirname, 'addresses.js
     throw new Error('addresses.json must be a JSON object keyed by chain name');
   }
   if (typeof parsed.CLManager === 'string') {
-    throw new Error('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum/bnb/hyperevm)');
+    throw new Error('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum/bnb/hyperevm/robinhood)');
   }
 
   const chainKey = chainId == null ? 'base' : String(chainId);
-  const chainName = chainKey === '1'
-    ? 'mainnet'
-    : (chainKey === '8453' ? 'base' : (chainKey === '42161' ? 'arbitrum' : (chainKey === '56' ? 'bnb' : (chainKey === '999' ? 'hyperevm' : chainKey))));
+  const chainName = CHAIN_ID_TO_NAME[chainKey] ?? chainKey;
   const source = parsed?.chains && typeof parsed.chains === 'object' && !Array.isArray(parsed.chains)
     ? parsed.chains
     : parsed;

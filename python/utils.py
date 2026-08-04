@@ -8,6 +8,15 @@ MIN_TICK = -887272
 MAX_TICK = 887272
 LN_1P0001 = math.log(1.0001)
 
+CHAIN_ID_TO_NAME = {
+    '1': 'mainnet',
+    '56': 'bnb',
+    '999': 'hyperevm',
+    '4663': 'robinhood',
+    '8453': 'base',
+    '42161': 'arbitrum',
+}
+
 
 def load_json(path: Path) -> Any:
     with path.open('r', encoding='utf-8') as f:
@@ -21,10 +30,10 @@ def load_addresses(addresses_path: Path | None = None, chain_id: int | str | Non
     if not isinstance(parsed, dict):
         raise ValueError('addresses.json must be a JSON object keyed by chain name')
     if isinstance(parsed.get('CLManager'), str):
-        raise ValueError('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum/bnb/hyperevm)')
+        raise ValueError('Legacy flat addresses.json format is not supported; use chain-name keys (mainnet/base/arbitrum/bnb/hyperevm/robinhood)')
 
     chain_key = 'base' if chain_id is None else str(chain_id)
-    chain_name = 'mainnet' if chain_key == '1' else ('base' if chain_key == '8453' else ('arbitrum' if chain_key == '42161' else ('bnb' if chain_key == '56' else ('hyperevm' if chain_key == '999' else chain_key))))
+    chain_name = CHAIN_ID_TO_NAME.get(chain_key, chain_key)
     source = parsed.get('chains') if isinstance(parsed.get('chains'), dict) else parsed
     selected = source.get(chain_name) or source.get(chain_key) or source.get('base')
     if not isinstance(selected, dict) or not isinstance(selected.get('CLManager'), str):

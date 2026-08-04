@@ -159,13 +159,16 @@ Before running:
 
 Address and pool configuration is chain-specific.
 
-- Address files are keyed by chain name (`mainnet`, `base`, `arbitrum`):
+- Address files are keyed by chain name (`mainnet`, `base`, `arbitrum`, `bnb`, `hyperevm`, `robinhood`):
   - `js/addresses.json`
   - `python/addresses.json`
 - Supported automatic chain selection:
   - Ethereum Mainnet (`chainId=1`) -> `mainnet`
   - Base (`chainId=8453`) -> `base`
   - Arbitrum (`chainId=42161`) -> `arbitrum`
+  - BNB Chain (`chainId=56`) -> `bnb`
+  - HyperEVM (`chainId=999`) -> `hyperevm`
+  - Robinhood Chain (`chainId=4663`) -> `robinhood`
 - Any unrecognized chain currently falls back to `base`.
 
 Each language folder also includes chain-scoped allowlisted pools in `ALLOWED_POOLS.md`.

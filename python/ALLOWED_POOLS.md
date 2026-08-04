@@ -79,3 +79,11 @@ Mirrors https://docs.ezmanager.finance/allowed-pools
 | Project X | USDt0/WHYPE | - | - | `0xBd19E19E4b70eB7F248695a42208bc1EdBBFb57D` |
 | Project X | UETH/WHYPE | - | - | `0xaf80230eB13222DB743C21762f65A046bb5F5437` |
 | Project X | UBTC/WHYPE | - | - | `0x0D6ECB912b6ee160e95Bc198b618Acc1bCb92525` |
+
+## Robinhood Chain
+
+| DEX | Pair | Fee tier | Tick spacing | Pool |
+|---|---|---:|---:|---|
+| Uniswap | WETH/USDG | 100 | 1 | `0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca` |
+| Uniswap | WETH/USDG | 500 | 10 | `0x69BfaF19C9f377BB306a89aEd9F6B07e2c1a8d9a` |
+| Uniswap | USDG/NVDA | 500 | 10 | `0xd4EB21209C4D6093f80B5b84f5C45cc093EA14a3` |

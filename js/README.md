@@ -18,10 +18,16 @@
   - `mainnet`
   - `base`
   - `arbitrum`
+  - `bnb`
+  - `hyperevm`
+  - `robinhood`
 - SDK chain selection in `EZManagerSDK.fromEnv()`:
   - `chainId=1` -> `mainnet`
   - `chainId=8453` -> `base`
   - `chainId=42161` -> `arbitrum`
+  - `chainId=56` -> `bnb`
+  - `chainId=999` -> `hyperevm`
+  - `chainId=4663` -> `robinhood`
   - any other chain -> `base` fallback
 
 ## Core Methods
@@ -59,4 +65,4 @@ Each example defines its own input constants at the top of the file.
 - SDK write calls attempt custom error decoding on reverts and include extra diagnostics for status=0 failures (including out-of-gas trace hints when available).
 
 ## Allowlisted Pools
-See `ALLOWED_POOLS.md` for chain-scoped allowlisted pools (`mainnet`, `base`, and `arbitrum`).
+See `ALLOWED_POOLS.md` for the chain-scoped allowlisted pools for all configured networks.

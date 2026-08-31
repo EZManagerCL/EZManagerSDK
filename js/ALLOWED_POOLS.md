@@ -20,7 +20,13 @@ Mirrors https://docs.ezmanager.finance/allowed-pools
 | Uniswap | WETH/cbBTC | 500 | 10 | `0x7AeA2E8A3843516afa07293a10Ac8E49906dabD1` |
 | Uniswap | WETH/cbBTC | 3000 | 60 | `0x8c7080564B5A792A33Ef2FD473fbA6364d5495e5` |
 | Uniswap | USDC/cbBTC | 500 | 10 | `0xfBB6Eed8e7aa03B138556eeDaF5D271A5E1e43ef` |
-| Uniswap | ZORA/USDC | 3000 | 60 | `0xEdc625B74537eE3a10874f53D170E9c17A906B9c` |
+| Aerodrome | WETH/USDC | - | 50 | `0x3FE04A59Ebd38cF06080a6F60a98D124eb59392A` |
+| Aerodrome | WETH/cbBTC | - | 10 | `0x42d4a22CaD0F5a49681a5715cE994Af73A43B76b` |
+| Aerodrome | USDC/cbBTC | - | 50 | `0x160D7E9d948B16c163332a277b393c288408eb12` |
+| Aerodrome | USDC/NVDAc | - | 10 | `0x853F5f1B92b16714Fe6CDA67CAad0856B83C7ab9` |
+| Aerodrome | USDC/AAPLc | - | 10 | `0xA3b1E3f9747065e2073722Ff4c9027d3eA4994F0` |
+| Aerodrome | USDC/GOOGLc | - | 10 | `0xB1987CAD1682841b4b641d50E520777eC5Ab5542` |
+| Aerodrome | USDC/METAc | - | 10 | `0xEAF57753BC382E0324a1D43F72E7027705a2273E` |
 
 ## BNB Chain
 
@@ -55,6 +61,7 @@ Mirrors https://docs.ezmanager.finance/allowed-pools
 
 | DEX | Pair | Fee tier | Tick spacing | Pool |
 |---|---|---:|---:|---|
+| Uniswap | USDC/USDT | 100 | 1 | `0x3416cF6C708Da44DB2624D63ea0AAef7113527C6` |
 | Uniswap | WETH/USDC | 500 | 10 | `0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640` |
 | Uniswap | WETH/USDT | 3000 | 60 | `0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36` |
 | Uniswap | WBTC/WETH | 3000 | 60 | `0xCBCdF9626bC03E24f779434178A73a0B4bad62eD` |
@@ -74,6 +81,7 @@ Mirrors https://docs.ezmanager.finance/allowed-pools
 
 | DEX | Pair | Fee tier | Tick spacing | Pool |
 |---|---|---:|---:|---|
+| Project X | UBTC/USDt0 | - | - | `0xfd0cb41a4a28b5cA13affe65cd5924F461b3C850` |
 | Project X | kHYPE/WHYPE | - | - | `0xbe352daF66af94ccF2012a154a67DAEF95FAcB91` |
 | Project X | USDC/WHYPE | - | - | `0x6c9A33E3b592C0d65B3Ba59355d5Be0d38259285` |
 | Project X | USDt0/WHYPE | - | - | `0xBd19E19E4b70eB7F248695a42208bc1EdBBFb57D` |
@@ -87,3 +95,7 @@ Mirrors https://docs.ezmanager.finance/allowed-pools
 | Uniswap | WETH/USDG | 100 | 1 | `0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca` |
 | Uniswap | WETH/USDG | 500 | 10 | `0x69BfaF19C9f377BB306a89aEd9F6B07e2c1a8d9a` |
 | Uniswap | USDG/NVDA | 500 | 10 | `0xd4EB21209C4D6093f80B5b84f5C45cc093EA14a3` |
+| Uniswap | USDG/SPCX | 3000 | 60 | `0xEb07d9587eFD1778dFb9c385Ec43EF6d5F9fE401` |
+| Uniswap | USDG/GME | 500 | 10 | `0xE2b46c905E12Ab8E2f864e4821a4325884C1B126` |
+| Uniswap | USDG/SPY | 3000 | 60 | `0xA43b424Bc609495AED4BCD88d654934b510B0aD9` |
+| Uniswap | USDG/TSLA | 3000 | 60 | `0xf4ACdAEEB7022862A763C9B1B885e11191c889E3` |
